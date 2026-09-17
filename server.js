@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
 const path = require('path');
@@ -8,7 +8,8 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-const db = new sqlite3.Database('./zafer.db');
+// Conexión a la base de datos SQLite con better-sqlite3
+const db = new Database('./zafer.db');
 
 // Inicializar la Base de Datos
 db.serialize(() => {
