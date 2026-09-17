@@ -54,7 +54,7 @@ app.post('/api/login', (req, res) => {
   try {
     const user = db.prepare('SELECT * FROM usuarios WHERE username = ?').get(username);
     if (!user) {
-      return res.status 401).json({ error: 'Usuario no encontrado' });
+      return res.status(401).json({ error: 'Usuario no encontrado' });
     }
 
     const passwordIsValid = bcrypt.compareSync(password, user.password);
