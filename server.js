@@ -8,10 +8,10 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// 1. PRIMERO SE CONECTA LA BASE DE DATOS (IMPORTANTE)
+// 1. Conexión a la base de datos SQLite con better-sqlite3
 const db = new Database('./zafer.db');
 
-// 2. LUEGO SE EJECUTAN LOS COMANDOS SOBRE "db"
+// 2. Inicialización de la base de datos (creación de tablas)
 db.exec(`
   CREATE TABLE IF NOT EXISTS usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,6 +43,17 @@ try {
   db.exec(`ALTER TABLE prendas ADD COLUMN stock INTEGER DEFAULT 0;`);
 } catch (e) {
   // Si la columna ya existe, se ignora
+}
+
+// Limpiar y corregir automáticamente cualquier código de barras nulo o vacío existente
+try {
+  const prendasNulas = db.prepare("SELECT id FROM prendas WHERE codigo_barras IS NULL OR codigo_barras = 'null' OR codigo_barras = ''").all();
+  prendasNulas.forEach(p => {
+    const nuevoCodigo = 'ZAF' + Math.floor(100000000 + Math.random() * 900000000);
+    db.prepare("UPDATE prendas SET codigo_barras = ? WHERE id = ?").run(nuevoCodigo, p.id);
+  });
+} catch (e) {
+  console.error("Error al limpiar códigos nulos:", e.message);
 }
 
 // Función de apoyo para registrar en auditoría
@@ -87,7 +98,13 @@ app.get('/api/prendas', (req, res) => {
 });
 
 app.post('/api/prendas', (req, res) => {
-  const { codigo_barras, nombre, categoria, genero, precio, stock, usuario } = req.body;
+  let { codigo_barras, nombre, categoria, genero, precio, stock, usuario } = req.body;
+
+  // Si no viene código de barras o es nulo/vacío, se genera automáticamente
+  if (!codigo_barras || codigo_barras === 'null' || codigo_barras === 'undefined' || String(codigo_barras).trim() === '') {
+    codigo_barras = 'ZAF' + Math.floor(100000000 + Math.random() * 900000000);
+  }
+
   try {
     const stmt = db.prepare(
       'INSERT INTO prendas (codigo_barras, nombre, categoria, genero, precio, stock) VALUES (?, ?, ?, ?, ?, ?)'
@@ -95,7 +112,7 @@ app.post('/api/prendas', (req, res) => {
     const result = stmt.run(codigo_barras, nombre, categoria, genero, precio, stock || 0);
 
     registrarAuditoria(usuario, `Creó la prenda: ${nombre} (${codigo_barras})`);
-    res.json({ id: result.lastInsertRowid, message: 'Prenda registrada exitosamente' });
+    res.json({ id: result.lastInsertRowid, codigo_barras, message: 'Prenda registrada exitosamente' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
