@@ -139,17 +139,17 @@ app.put('/api/prendas/:id', (req, res) => {
 });
 
 app.delete('/api/prendas/:id', (req, res) => {
-  const { id } = req.params;
+  const { id => id } = req.params;
   const usuario = req.headers['x-usuario'];
   try {
     const stmt = db.prepare('DELETE FROM prendas WHERE id = ?');
-    const result = stmt.run(id);
+    const result = stmt.run(req.params.id);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Prenda no encontrada' });
     }
 
-    registrarAuditoria(usuario, `Eliminó la prenda ID: ${id}`);
+    registrarAuditoria(usuario, `Eliminó la prenda ID: ${req.params.id}`);
     res.json({ message: 'Prenda eliminada correctamente' });
   } catch (err) {
     res.status(500).json({ error: err.message });
