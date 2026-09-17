@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZAFER - Control de Inventario y Ventas</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+
+  <!-- Pantalla de Login -->
+  <div id="login-screen" class="login-card">
+    <div class="brand-header">
+      <h1>ZAFER</h1>
+      <p>Moda Dama & Caballero</p>
+    </div>
+    <form id="form-login">
+      <div class="input-group">
+        <label>Usuario</label>
+        <input type="text" id="login-user" placeholder="Ingresa tu usuario" required autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-pass" placeholder="Ingresa tu contraseña" required>
+      </div>
+      <button type="submit" class="btn-primary">Iniciar Sesión</button>
+    </form>
+    <p id="login-error" class="error-msg"></p>
+  </div>
+
+  <!-- Pantalla Principal -->
+  <div id="app-screen" class="hidden">
+    <header class="navbar">
+      <div class="logo">ZAFER <span>| Sistema de Gestión</span></div>
+      <div class="user-info">
+        <span>Usuario: <strong id="user-display"></strong></span>
+        <button onclick="logout()" class="btn-logout">Cerrar Sesión</button>
+      </div>
+    </header>
+
+    <main class="dashboard-container">
+      <div class="top-row">
+        <!-- Formulario Ingreso de Prenda -->
+        <section class="card">
+          <h2>Ingresar Nueva Prenda</h2>
+          <form id="form-prenda">
+            <div class="form-grid">
+              <div class="input-group">
+                <label>Nombre de Prenda</label>
+                <input type="text" id="nombre-prenda" placeholder="Ej. Casaca de Cuero" required>
+              </div>
+              <div class="input-group">
+                <label>Categoría</label>
+                <select id="categoria-prenda">
+                  <option value="Polos/Camisas">Polos / Camisas</option>
+                  <option value="Pantalones/Jeans">Pantalones / Jeans</option>
+                  <option value="Casacas/Sacos">Casacas / Sacos</option>
+                  <option value="Vestidos/Faldas">Vestidos / Faldas</option>
+                  <option value="Blusas/Tops">Blusas / Tops</option>
+                  <option value="Accesorios">Accesorios</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Género</label>
+                <select id="genero-prenda">
+                  <option value="Mujer">Mujer</option>
+                  <option value="Hombre">Hombre</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label>Precio (S/)</label>
+                <input type="number" step="0.50" id="precio-prenda" placeholder="0.00" required>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary">Registrar y Generar Código de Barras</button>
+          </form>
+
+          <div id="barcode-result" class="barcode-card hidden">
+            <h3>Código de Barras Generado</h3>
+            <svg id="barcode"></svg>
+            <p id="barcode-value"></p>
+            <button onclick="window.print()" class="btn-secondary">Imprimir Etiqueta</button>
+          </div>
+        </section>
+
+        <!-- Escáner / Registro de Venta -->
+        <section class="card scanner-card">
+          <h2>Registrar Venta</h2>
+          <p class="subtitle">Escanee con la pistola lectora o ingrese el código de barras manualmente:</p>
+          <div class="scan-box">
+            <input type="text" id="barcode-scanner" placeholder="Escanear código aquí..." autofocus>
+            <button onclick="registrarVenta()" class="btn-action">Registrar Venta</button>
+          </div>
+          <div id="scan-status" class="status-msg"></div>
+        </section>
+      </div>
+
+      <!-- Tablas e Inventario -->
+      <section class="card full-width">
+        <div class="table-header">
+          <h2>Inventario de prendas</h2>
+          <div class="filter-buttons">
+            <button onclick="cargarPrendas('todas')" class="btn-filter active" id="filter-todas">Todas</button>
+            <button onclick="cargarPrendas('disponible')" class="btn-filter" id="filter-disponible">En Stock (No vendidas)</button>
+            <button onclick="cargarPrendas('vendido')" class="btn-filter" id="filter-vendido">Vendidas</button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Código de Barras</th>
+                <th>Prenda</th>
+                <th>Categoría</th>
+                <th>Género</th>
+                <th>Precio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tabla-prendas">
+              <!-- Carga dinámica -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+<thead>
+  <tr>
+    <th>Código de Barras</th>
+    <th>Prenda</th>
+    <th>Categoría</th>
+    <th>Género</th>
+    <th>Precio</th>
+    <th>Estado</th>
+    <th>Registrado Por</th> <!-- Agrega esta línea -->
+  </tr>
+</thead>
+  <script src="app.js"></script>
+</body>
+</html>
