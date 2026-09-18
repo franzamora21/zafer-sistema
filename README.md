@@ -15,12 +15,7 @@ zafer-sistema/
 └── README.md
 ```
 
-## Usuarios Autorizados
-El acceso está estrictamente limitado a 3 usuarios:
 
-1. **kevinzafer** - Contraseña: `222026`
-2. **elsazafer** - Contraseña: `196312`
-3. **tanozafer** - Contraseña: `196313`
 
 ## Instrucciones de Instalación y Ejecución
 
