@@ -1,172 +1,94 @@
-let currentUser = null;
-
-document.addEventListener('DOMContentLoaded', () => {
-    const formLogin = document.getElementById('form-login');
-    if (formLogin) {
-        formLogin.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('login-user').value.trim();
-            const password = document.getElementById('login-pass').value.trim();
-            const errorMsg = document.getElementById('login-error');
-
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    currentUser = data.username;
-                    document.getElementById('user-display').innerText = currentUser;
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('app-screen').classList.remove('hidden');
-                    
-                    cargarPrendas('todas');
-                } else {
-                    errorMsg.innerText = data.error || 'Credenciales incorrectas';
-                }
-            } catch (err) {
-                errorMsg.innerText = 'Error al conectar con el servidor';
-            }
-        });
-    }
-
-    const formPrenda = document.getElementById('form-prenda');
-    if (formPrenda) {
-        formPrenda.addEventListener('submit', registrarPrenda);
-    }
-
-    const barcodeScannerInput = document.getElementById('barcode-scanner');
-    if (barcodeScannerInput) {
-        barcodeScannerInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                registrarVenta();
-            }
-        });
-    }
-});
-
-function logout() {
-    location.reload();
-}
-
-async function registrarPrenda(event) {
-    event.preventDefault();
-
-    const nombre = document.getElementById('nombre-prenda').value.trim();
-    const categoria = document.getElementById('categoria-prenda').value;
-    const genero = document.getElementById('genero-prenda').value;
-    const precio = parseFloat(document.getElementById('precio-prenda').value);
-
-    try {
-        const res = await fetch('/api/prendas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombre, categoria, genero, precio, usuario: currentUser })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            document.getElementById('form-prenda').reset();
-            
-            const barcodeResult = document.getElementById('barcode-result');
-            const barcodeValue = document.getElementById('barcode-value');
-            
-            barcodeResult.classList.remove('hidden');
-            barcodeValue.innerText = data.codigo_barras;
-
-            JsBarcode("#barcode", data.codigo_barras, {
-                format: "CODE128",
-                lineColor: "#000",
-                width: 2,
-                height: 60,
-                displayValue: true
-            });
-
-            cargarPrendas('todas');
-        } else {
-            alert(data.error || 'Error al registrar la prenda');
+// Función para generar la boleta de venta en formato formal tipo ticket/comprobante
+function generarBoletaVenta(prenda) {
+  const ventanaBoleta = window.open('', '_blank', 'width=800,height=600');
+  
+  const htmlBoleta = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>Boleta de Venta - ZAFER</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #333; background: #f9f9f9; }
+        .boleta-container { max-width: 600px; margin: auto; background: #fff; border: 1px solid #ccc; padding: 30px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h2 { margin: 0; color: #1e293b; }
+        .header p { margin: 4px 0; font-size: 13px; color: #555; }
+        .info-empresa { margin-bottom: 20px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+        th { background-color: #f1f5f9; color: #1e293b; }
+        .total-section { text-align: right; font-size: 15px; font-weight: bold; margin-bottom: 20px; }
+        .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; border-top: 1px dashed #ccc; padding-top: 10px; }
+        .no-print { text-align: center; margin-top: 20px; }
+        .btn-print { padding: 10px 20px; background: #1e293b; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-print:hover { background: #334155; }
+        @media print {
+          body { background: #fff; padding: 0; }
+          .boleta-container { border: none; box-shadow: none; padding: 0; }
+          .no-print { display: none; }
         }
-    } catch (err) {
-        alert('Error de conexión al registrar prenda');
-    }
+      </style>
+    </head>
+    <body>
+      <div class="boleta-container">
+        <div class="header">
+          <h2>SISTEMA ZAFER E.I.R.L.</h2>
+          <p>RUC: 20600000001</p>
+          <p>Jr. Comercial 123 - Lima, Perú</p>
+          <h3 style="margin-top: 10px;">BOLETA DE VENTA ELECTRÓNICA</h3>
+          <p><strong>N° B001 - 0000' + Math.floor(1000 + Math.random() * 9000) + '</strong></p>
+        </div>
+
+        <div class="info-empresa">
+          <p><strong>Fecha y Hora:</strong> ${new Date().toLocaleString()}</p>
+          <p><strong>Condición de Pago:</strong> Contado</p>
+          <p><strong>Cajero / Usuario:</strong> ${localStorage.getItem('usuario') || 'Sistema'}</p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Código de Barras</th>
+              <th>Descripción de Prenda</th>
+              <th>Categoría / Género</th>
+              <th>P. Unitario</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${prenda.codigo_barras}</td>
+              <td>${prenda.nombre}</td>
+              <td>${prenda.categoria} (${prenda.genero})</td>
+              <td>S/ ${Number(prenda.precio).toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="total-section">
+          <p>IMPORTE TOTAL: S/ ${Number(prenda.precio).toFixed(2)}</p>
+        </div>
+
+        <div class="footer">
+          <p>¡Gracias por su preferencia en ZAFER!</p>
+          <p>Representación impresa de la Boleta de Venta Electrónica.</p>
+        </div>
+
+        <div class="no-print">
+          <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  ventanaBoleta.document.write(htmlBoleta);
+  ventanaBoleta.document.close();
 }
 
-async function cargarPrendas(filtro) {
-    let url = '/api/prendas';
-    if (filtro === 'disponible') url += '?estado=disponible';
-    if (filtro === 'vendido') url += '?estado=vendido';
-
-    document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
-    const btnActive = document.getElementById(`filter-${filtro}`);
-    if (btnActive) btnActive.classList.add('active');
-
-    try {
-        const res = await fetch(url);
-        const prendas = await res.json();
-        const tbody = document.getElementById('tabla-prendas');
-        tbody.innerHTML = '';
-
-        prendas.forEach(p => {
-            const tr = document.createElement('tr');
-            const estadoTexto = p.vendido === 1 ? 'Vendido' : 'Disponible';
-            const estadoClase = p.vendido === 1 ? 'badge-vendido' : 'badge-disponible';
-
-            tr.innerHTML = `
-                <td><strong>${p.codigo_barras}</strong></td>
-                <td>${p.nombre}</td>
-                <td>${p.categoria}</td>
-                <td>${p.genero}</td>
-                <td>S/ ${p.precio.toFixed(2)}</td>
-                <td><span class="${estadoClase}">${estadoTexto}</span></td>
-                <td>${p.usuario || 'Sistema'}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (err) {
-        console.error('Error al cargar inventario:', err);
-    }
-}
-
-async function registrarVenta() {
-    const inputScanner = document.getElementById('barcode-scanner');
-    const statusMsg = document.getElementById('scan-status');
-    const codigo_barras = inputScanner.value.trim();
-
-    if (!codigo_barras) {
-        statusMsg.style.color = '#d9534f';
-        statusMsg.innerText = 'Por favor, ingrese o escanee un código de barras.';
-        return;
-    }
-
-    try {
-        const res = await fetch('/api/prendas/vender', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ codigo_barras, usuario: currentUser })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            statusMsg.style.color = '#28a745';
-            statusMsg.innerText = `¡Venta registrada con éxito! (Código: ${codigo_barras})`;
-            inputScanner.value = '';
-            inputScanner.focus();
-            
-            cargarPrendas('todas');
-        } else {
-            statusMsg.style.color = '#d9534f';
-            statusMsg.innerText = data.error || 'Prenda no encontrada o ya vendida';
-        }
-    } catch (err) {
-        statusMsg.style.color = '#d9534f';
-        statusMsg.innerText = 'Error de conexión al procesar venta';
-    }
-}
+// Ejemplo de integración al registrar venta en tu interfaz (asegúrate de llamarla al recibir la respuesta exitosa del servidor):
+// fetch('/api/ventas', { method: 'POST', ... })
+//   .then(res => res.json())
+//   .then(data => {
+//      if(data.prenda) { generarBoletaVenta(data.prenda); cargarInventario(); }
+//   });
